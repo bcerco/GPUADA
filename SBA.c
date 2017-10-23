@@ -32,21 +32,23 @@ int main (int argc, char *argv[]) {
     /* Arg 3: Number of resources */
     num_resources = atoi(argv[3]);
     printf("R: %d\n",num_resources);
+    /* Arg 4: Filename for matrix and resource vector */
     printf("File: %s\n",argv[4]);
+    file=fopen(argv[4], "r");
+    if (file == NULL)
+        exit(EXIT_FAILURE);
     /* Allocate memory for resource vectors and matrix */
     int r_avail[num_resources];
     int r_request[num_resources];
     int p_sequence[num_processes];
     int *r_alloc[num_processes];
     int *r_max[num_processes];
+    int *r_need[num_processes];
     for (p = 0; p < num_processes; p++){
         r_alloc[p] = (int *)malloc(num_resources * sizeof(int));
         r_max[p] = (int *)malloc(num_resources * sizeof(int));
+        r_need[p] = (int *)malloc(num_resources * sizeof(int));
     }
-    /* Arg 4: Filename for matrix and resource vector */
-    file=fopen(argv[4], "r");
-    if (file == NULL)
-        exit(EXIT_FAILURE);
     /* First line in the file is the request vector */
     read = getline(&line, &len, file);
     store_vector(r_request,line);
@@ -57,16 +59,6 @@ int main (int argc, char *argv[]) {
     store_vector(r_avail,line);
     printf("r_avail: ");
     print_vector(r_avail, num_resources);
-    /* Read in the reource allocation matrix from file */
-    for (p = 0; p < num_processes; p++){
-        read = getline(&line, &len, file);
-        r = 0;
-        tokens = strtok(line,",");
-        while (tokens != NULL){
-            r_alloc[p][r++] = atoi(tokens); 
-            tokens = strtok(NULL,",");
-        }
-    }
     /* Read in the maximum reource needed matrix from file */
     for (p = 0; p < num_processes; p++){
         read = getline(&line, &len, file);
@@ -77,12 +69,28 @@ int main (int argc, char *argv[]) {
             tokens = strtok(NULL,",");
         }
     }
+    /* Read in the reource allocation matrix from file */
+    /* Calculate values for the need matrix */
+    for (p = 0; p < num_processes; p++){
+        read = getline(&line, &len, file);
+        r = 0;
+        tokens = strtok(line,",");
+        while (tokens != NULL){
+            r_alloc[p][r] = atoi(tokens); 
+            r_need[p][r] = r_max[p][r] - r_alloc[p][r++]; 
+            tokens = strtok(NULL,",");
+        }
+    }
     fclose(file);
     if (line)
         free(line);
     /* Print for testing */
-    print_matrix(r_alloc,num_processes,num_resources);
+    printf("---MAX Matrix---\n");
     print_matrix(r_max,num_processes,num_resources);
+    printf("---ALLOC Matrix---\n");
+    print_matrix(r_alloc,num_processes,num_resources);
+    printf("---NEED Matrix---\n");
+    print_matrix(r_need,num_processes,num_resources);
     if (!resource_check(r_request,r_avail,num_resources))
         printf("DENIED\n");
     else
