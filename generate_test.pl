@@ -13,18 +13,13 @@ my ($numP, $numR) = @ARGV;
 #-- Check for params
 if (not defined $numP or not defined $numR) {die "max numP and numR\n"; }
 
-
-##-- Generate Max Matrix
-#generate_matrix(\@max,$numP,$numR);
-##-- Generate Alloc Matrix
-#generate_alloc_matrix(\@max,\@alloc,$numP,$numR);
-
 #-- Generate Max Matrix
 generate_matrix(\@max,$numP,$numR);
 #-- Generate Alloc Matrix
 generate_alloc_matrix(\@max,\@alloc,$numP,$numR);
 #-- Generate available resource vector
-generate_matrix(\@avail,1,$numR);
+#generate_matrix(\@avail,1,$numR);
+generate_avail(\@avail,1,$numR);
 #-- Generate request vector
 generate_alloc_matrix(\@avail,\@request,1,$numR);
 
@@ -34,6 +29,13 @@ print_matrix(\@avail,1,$numR);
 print_matrix(\@max,$numP,$numR);
 print_matrix(\@alloc,$numP,$numR);
 
+sub generate_avail {
+        for (my $p = 0; $p < $_[1]; $p++){
+                for (my $r = 0; $r < $_[2]; $r++){
+                        $_[0][$p][$r] = 100;
+                }
+        }
+}
 #-- Randomly fill matrix
 sub generate_matrix {
         for (my $p = 0; $p < $_[1]; $p++){
