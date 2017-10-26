@@ -12,6 +12,8 @@ void print_vector(int *array, int size);
 void print_matrix(int **array, int row, int col);
 int resource_check(int **alloc, int *req, int *avail, int *seq, int *seen, int size, int pid);
 int bankers_alg(int **alloc, int **need, int *avail, int *seq, int *seen, int row, int col);
+void sort_matrix(int **need, int row, int col);
+int compare_int( const void *a, const void *b);
 int main (int argc, char *argv[]) {
         int p,r,process_id,num_processes,num_resources;
         FILE *file;
@@ -149,6 +151,19 @@ int bankers_alg(int **alloc, int **need, int *avail, int *seq, int *seen, int ro
                 }
         }
         return 1;
+}
+void sort_matrix(int **need, int row, int col){
+  int *col_vect[row];
+  int i;
+  for (i = 0; i < row; i++)
+    col_vect[i] = need[i];
+  qsort(col_vect, row, sizeof(int*), compare_int);
+  for (i = 0; i < row; i++)
+    need[i] = col_vect[i];
+}
+int compare_int( const void *a, const void *b){
+  if ( (*((int **)a))[0] == (*((int **)b))[0] ) return 0;
+  return (*((int **)a))[0] < (*((int **)b))[0] ? -1 : 1;
 }
 /* Split string input from file and store as vector */
 void store_vector(int *array, char *line){
