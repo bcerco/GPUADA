@@ -17,8 +17,10 @@ int bankers_alg(int **alloc, int **need, int *avail, int *seq, int *seen, int ro
 void sort_matrix(int **need, int row, int col);
 int compare_int( const void *a, const void *b);
 uint64_t rdtsc();
+int SORT_COL=0;
+int DUP_FLAG=0;
 int main (int argc, char *argv[]) {
-	int p,r,process_id,num_processes,num_resources;
+	int p,r,process_id,num_processes,num_resources,start,stop;
 	FILE *file;
 	char * line = NULL;
 	size_t len = 0;
@@ -88,8 +90,9 @@ int main (int argc, char *argv[]) {
 		tokens = strtok(line,",");
 		while (tokens != NULL){
 			r_alloc[p][r] = atoi(tokens);
-			r_need[p][r] = r_max[p][r] - r_alloc[p][r++];
+			r_need[p][r] = r_max[p][r] - r_alloc[p][r];
 			tokens = strtok(NULL,",");
+			r++;
 		}
 	}
 	fclose(file);
@@ -163,13 +166,18 @@ void sort_matrix(int **need, int row, int col){
 	int i;
 	for (i = 0; i < row; i++)
 		col_vect[i] = need[i];
-	qsort(col_vect, row, sizeof(int*), compare_int);
+	do {
+		DUP_FLAG=0;
+		qsort(col_vect, row, sizeof(int*), compare_int);
+		SORT_COL++;
+	} while (DUP_FLAG && SORT_COL < col);
 	for (i = 0; i < row; i++)
 		need[i] = col_vect[i];
 }
 int compare_int( const void *a, const void *b){
-	if ( (*((int **)a))[0] == (*((int **)b))[0] ) return 0;
-	return (*((int **)a))[0] < (*((int **)b))[0] ? -1 : 1;
+	if ( SORT_COL && (*((int **)a))[SORT_COL-1] != (*((int **)b))[SORT_COL-1] ) return 0;
+	if ( (*((int **)a))[SORT_COL] == (*((int **)b))[SORT_COL] ) { DUP_FLAG=1; return 0;}
+	return (*((int **)a))[SORT_COL] < (*((int **)b))[SORT_COL] ? -1 : 1;
 }
 /* Split string input from file and store as vector */
 void store_vector(int *array, char *line){
