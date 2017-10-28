@@ -1,24 +1,9 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<malloc.h>
-#include<string.h>
-#include<stdint.h>
-#include<inttypes.h>
+#include "SBA.h"
 
 /*
  * Brandon Cercone
  * Serial Banker's Algorithm
  */
-void store_vector(int *array, char *line);
-void print_vector(int *array, int size);
-void print_matrix(int **array, int row, int col);
-int resource_check(int **alloc, int *req, int *avail, int *seq, int *seen, int size, int pid);
-int bankers_alg(int **alloc, int **need, int *avail, int *seq, int *seen, int row, int col);
-void sort_matrix(int **need, int row, int col);
-int compare_int( const void *a, const void *b);
-uint64_t rdtsc();
-int SORT_COL=0;
-int DUP_FLAG=0;
 int main (int argc, char *argv[]) {
 	int p,r,process_id,num_processes,num_resources,start,stop;
 	FILE *file;
@@ -132,92 +117,4 @@ int main (int argc, char *argv[]) {
 		free(r_need[p]);
 	}
 	exit(EXIT_SUCCESS);
-}
-int bankers_alg(int **alloc, int **need, int *avail, int *seq, int *seen, int row, int col){
-	int p,r,flag,counter;
-	counter = 1;
-	while (counter < row) {
-		flag = 0;
-		for (p = 0; p < row; p++){
-			if (seen[p]) continue;
-			for (r = 0; r < col; r++){
-				if (avail[r] < need[p][r]){
-					flag = 0;
-					break;
-				}
-				else
-					flag = 1;
-			}
-			if (flag) break;
-		}
-		if (!flag)
-			return 0;
-		else {
-			for (r = 0; r < col; r++)
-				avail[r] += alloc[p][r];
-			seen[p] = 1;
-			seq[counter++] = p;
-		}
-	}
-	return 1;
-}
-void sort_matrix(int **need, int row, int col){
-	int *col_vect[row];
-	int i;
-	for (i = 0; i < row; i++)
-		col_vect[i] = need[i];
-	do {
-		DUP_FLAG=0;
-		qsort(col_vect, row, sizeof(int*), compare_int);
-		SORT_COL++;
-	} while (DUP_FLAG && SORT_COL < col);
-	for (i = 0; i < row; i++)
-		need[i] = col_vect[i];
-}
-int compare_int( const void *a, const void *b){
-	if ( SORT_COL && (*((int **)a))[SORT_COL-1] != (*((int **)b))[SORT_COL-1] ) return 0;
-	if ( (*((int **)a))[SORT_COL] == (*((int **)b))[SORT_COL] ) { DUP_FLAG=1; return 0;}
-	return (*((int **)a))[SORT_COL] < (*((int **)b))[SORT_COL] ? -1 : 1;
-}
-/* Split string input from file and store as vector */
-void store_vector(int *array, char *line){
-	char *tokens = strtok(line,",");
-	int i = 0;
-	while (tokens != NULL){
-		array[i++] = atoi(tokens);
-		tokens = strtok(NULL,",");
-	}
-}
-/* Print space separated vector */
-void print_vector(int *array, int size){
-	int i = 0;
-	for (i = 0; i < size; i++)
-		printf("%d ",array[i]);
-	printf("\n");
-}
-/* Print space separated matrix */
-void print_matrix(int **array, int row, int col){
-	int p,r;
-	for (p = 0; p < row; p++){
-		for (r = 0; r < col; r++)
-			printf("%2d ", array[p][r]);
-		printf("\n");
-	}
-}
-int resource_check(int **alloc, int *req, int *avail, int *seq, int *seen, int size, int pid){
-	int i;
-	for (i = 0; i < size; i++){
-		if (req[i] > avail[i])
-			return 0;
-		else
-			avail[i] += alloc[pid][i];
-	}
-	seen[pid] = 1;
-	seq[0] = pid;
-	return 1;
-}
-uint64_t rdtsc() {
-	unsigned int lo,hi;
-	__asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
-	return ((uint64_t)hi << 32) | lo;
 }
