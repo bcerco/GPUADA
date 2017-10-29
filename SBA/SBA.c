@@ -5,33 +5,36 @@
  * Serial Banker's Algorithm
  */
 int main (int argc, char *argv[]) {
-	int p,r,process_id,num_processes,num_resources,start,stop;
+	int p,r,num_processes,num_resources;
+    uint64_t start, stop;
 	FILE *file;
 	char * line = NULL;
 	size_t len = 0;
 	ssize_t read;
 	char *tokens;
 	int debug = 0;
-	printf("Args: %d\n",argc);
-	if (argc < 5){
+	int sort = 0;
+	//printf("Args: %d\n",argc);
+	if (argc < 2){
 		printf("ERROR: args=%d",argc);
 		exit(EXIT_FAILURE);
 	}
-	if (argc == 6 && strcmp(argv[5],"-d") == 0) debug = 1;
-	/* Arg 1: Requesting process number */
-	process_id = atoi(argv[1]);
-	printf("PID: %d\n",process_id);
-	/* Arg 2: Number of processes */
-	num_processes = atoi(argv[2]);
-	printf("P: %d\n",num_processes);
-	/* Arg 3: Number of resources */
-	num_resources = atoi(argv[3]);
-	printf("R: %d\n",num_resources);
-	/* Arg 4: Filename for matrix and resource vector */
-	printf("File: %s\n",argv[4]);
-	file=fopen(argv[4], "r");
+	if (argc == 3){
+        if (strcmp(argv[2],"-s") == 0) sort = 1;
+        if (strcmp(argv[2],"-d") == 0) debug = 1;
+    }
+	if (argc == 4 && strcmp(argv[3],"-d") == 0) debug = 1;
+	/* Arg 1: Filename for matrix and resource vector */
+	if (debug) printf("File: %s\n",argv[1]);
+	file=fopen(argv[1], "r");
 	if (file == NULL)
 		exit(EXIT_FAILURE);
+	/* First line in the file is the number of processes */
+	read = getline(&line, &len, file);
+	num_processes = atoi(line);
+	/* Second line in the file is the number of resources */
+	read = getline(&line, &len, file);
+	num_resources = atoi(line);
 	/* Allocate memory for resource vectors and matrix */
 	int r_avail[num_resources];
 	int r_request[num_resources];
@@ -47,16 +50,20 @@ int main (int argc, char *argv[]) {
 		p_seen[p] = 0;
 		p_sequence[p] = -1;
 	}
-	/* First line in the file is the request vector */
+	/* Third line in the file is the request vector */
 	read = getline(&line, &len, file);
 	store_vector(r_request,line);
-	printf("r_request: ");
-	print_vector(r_request, num_resources);
-	/* Second line in file is the resources available vector */
+    if (debug){
+        printf("r_request: ");
+        print_vector(r_request, num_resources);
+    }
+	/* Fourth line in file is the resources available vector */
 	read = getline(&line, &len, file);
 	store_vector(r_avail,line);
-	printf("r_avail: ");
-	print_vector(r_avail, num_resources);
+    if (debug){
+        printf("r_avail: ");
+        print_vector(r_avail, num_resources);
+    }
 	/* Read in the maximum reource needed matrix from file */
 	for (p = 0; p < num_processes; p++){
 		read = getline(&line, &len, file);
@@ -92,25 +99,37 @@ int main (int argc, char *argv[]) {
 		printf("---NEED Matrix---\n");
 		print_matrix(r_need,num_processes,num_resources);
 	}
-	if (!resource_check(r_alloc,r_request,r_avail,p_sequence,p_seen,num_resources,process_id))
-		printf("DENIED\n");
-	else{
-		if (bankers_alg(r_alloc,r_need,r_avail,p_sequence,p_seen,num_processes,num_resources))
-			printf("GRANTED\n");
-		else
-			printf("DENIED\n");
-	}
+    if (sort){
+        start = rdtsc();
+        sort_matrix(r_need,r_alloc,num_processes,num_resources);
+        stop = rdtsc();
+        printf("Sort cycles: %" PRIu64 "\n", (stop - start));
+        if (debug) {
+            printf("---Sorted NEED---\n");
+            print_matrix(r_need,num_processes,num_resources);
+            printf("---Sorted Alloc---\n");
+            print_matrix(r_alloc,num_processes,num_resources);
+        }
+    }
+	//if (!resource_check(r_alloc,r_request,r_avail,p_sequence,p_seen,num_resources,process_id))
+	//	printf("DENIED\n");
+	//else{
+    start = rdtsc();
+    if (bankers_alg(r_alloc,r_need,r_avail,p_sequence,p_seen,num_processes,num_resources))
+        printf("GRANTED\n");
+    else
+        printf("DENIED\n");
+    stop = rdtsc();
+    printf("BA cycles: %" PRIu64 "\n", (stop - start));
 
-	printf("p_sequence: ");
-	print_vector(p_sequence, num_processes);
-	printf("p_seen: ");
-	print_vector(p_seen, num_processes);
-	printf("r_avail: ");
-	print_vector(r_avail, num_resources);
-	sort_matrix(r_need,num_processes,num_resources);
-	printf("---Sorted NEED---\n");
-	print_matrix(r_need,num_processes,num_resources);
-	/* Free memory */
+    if (debug){
+        printf("p_sequence: ");
+        print_vector(p_sequence, num_processes);
+        printf("p_seen: ");
+        print_vector(p_seen, num_processes);
+        printf("r_avail: ");
+        print_vector(r_avail, num_resources);
+    }
 	for (p = 0; p < num_processes; p++){
 		free(r_alloc[p]);
 		free(r_max[p]);

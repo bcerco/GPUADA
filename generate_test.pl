@@ -24,6 +24,7 @@ generate_avail(\@avail,1,$numR);
 generate_alloc_matrix(\@avail,\@request,1,$numR);
 
 #-- Print
+printf "%d\n%d\n", $numP, $numR;
 print_matrix(\@request,1,$numR);
 print_matrix(\@avail,1,$numR);
 print_matrix(\@max,$numP,$numR);
@@ -32,7 +33,7 @@ print_matrix(\@alloc,$numP,$numR);
 sub generate_avail {
         for (my $p = 0; $p < $_[1]; $p++){
                 for (my $r = 0; $r < $_[2]; $r++){
-                        $_[0][$p][$r] = 100;
+                        $_[0][$p][$r] = 50;
                 }
         }
 }

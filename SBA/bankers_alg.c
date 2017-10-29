@@ -2,7 +2,7 @@
 
 int bankers_alg(int **alloc, int **need, int *avail, int *seq, int *seen, int row, int col){
 	int p,r,flag,counter;
-	counter = 1;
+	counter = 0;
 	while (counter < row) {
 		flag = 0;
 		for (p = 0; p < row; p++){
