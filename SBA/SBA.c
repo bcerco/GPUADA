@@ -115,11 +115,14 @@ int main (int argc, char *argv[]) {
 	//	printf("DENIED\n");
 	//else{
     start = rdtsc();
-    if (bankers_alg(r_alloc,r_need,r_avail,p_sequence,p_seen,num_processes,num_resources))
+    if (bankers_alg(r_alloc,r_need,r_avail,p_sequence,p_seen,num_processes,num_resources)){
         printf("GRANTED\n");
-    else
+        stop = rdtsc();
+    }
+    else{
         printf("DENIED\n");
-    stop = rdtsc();
+        stop = rdtsc();
+    }
     printf("BA cycles: %" PRIu64 "\n", (stop - start));
 
     if (debug){

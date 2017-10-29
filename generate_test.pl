@@ -33,7 +33,7 @@ print_matrix(\@alloc,$numP,$numR);
 sub generate_avail {
         for (my $p = 0; $p < $_[1]; $p++){
                 for (my $r = 0; $r < $_[2]; $r++){
-                        $_[0][$p][$r] = 50;
+                        $_[0][$p][$r] = int(rand(100) + 10);
                 }
         }
 }
@@ -41,7 +41,7 @@ sub generate_avail {
 sub generate_matrix {
         for (my $p = 0; $p < $_[1]; $p++){
                 for (my $r = 0; $r < $_[2]; $r++){
-                        $tmp = int(rand(100));
+                        $tmp = int(rand(50));
                         $_[0][$p][$r] = $tmp;
                 }
         }
@@ -51,7 +51,7 @@ sub generate_matrix {
 sub generate_alloc_matrix {
         for (my $p = 0; $p < $_[2]; $p++){
                 for (my $r = 0; $r < $_[3]; $r++){
-                        $tmp = int(rand($_[0][$p][$r]));
+                        $tmp = int(rand($_[0][$p][$r] *.75 ));
                         $_[1][$p][$r] = $tmp;
                 }
         }
