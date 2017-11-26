@@ -19,7 +19,7 @@ int main (int argc, char *argv[]) {
 		printf("ERROR: args=%d",argc);
 		exit(EXIT_FAILURE);
 	}
-	if (argc == 3){
+	if (argc >= 3){
         if (strcmp(argv[2],"-s") == 0) sort = 1;
         if (strcmp(argv[2],"-d") == 0) debug = 1;
     }
@@ -37,7 +37,7 @@ int main (int argc, char *argv[]) {
 	num_resources = atoi(line);
 	/* Allocate memory for resource vectors and matrix */
 	int r_avail[num_resources];
-	int r_request[num_resources];
+	//int r_request[num_resources];
 	int p_sequence[num_processes];
 	int p_seen[num_processes];
 	int *r_alloc[num_processes];
@@ -51,12 +51,12 @@ int main (int argc, char *argv[]) {
 		p_sequence[p] = -1;
 	}
 	/* Third line in the file is the request vector */
-	read = getline(&line, &len, file);
-	store_vector(r_request,line);
-    if (debug){
-        printf("r_request: ");
-        print_vector(r_request, num_resources);
-    }
+	//read = getline(&line, &len, file);
+	//store_vector(r_request,line);
+    //if (debug){
+    //    printf("r_request: ");
+    //    print_vector(r_request, num_resources);
+    //}
 	/* Fourth line in file is the resources available vector */
 	read = getline(&line, &len, file);
 	store_vector(r_avail,line);
