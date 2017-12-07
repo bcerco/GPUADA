@@ -11,6 +11,7 @@ int main (int argc, char *argv[]) {
 	char * line = NULL;
 	size_t len = 0;
 	ssize_t read;
+    clock_t t;
 	char *tokens;
 	int debug = 0;
 	int sort = 0;
@@ -50,13 +51,6 @@ int main (int argc, char *argv[]) {
 		p_seen[p] = 0;
 		p_sequence[p] = -1;
 	}
-	/* Third line in the file is the request vector */
-	//read = getline(&line, &len, file);
-	//store_vector(r_request,line);
-    //if (debug){
-    //    printf("r_request: ");
-    //    print_vector(r_request, num_resources);
-    //}
 	/* Fourth line in file is the resources available vector */
 	read = getline(&line, &len, file);
 	store_vector(r_avail,line);
@@ -111,19 +105,17 @@ int main (int argc, char *argv[]) {
             print_matrix(r_alloc,num_processes,num_resources);
         }
     }
-	//if (!resource_check(r_alloc,r_request,r_avail,p_sequence,p_seen,num_resources,process_id))
-	//	printf("DENIED\n");
-	//else{
     start = rdtsc();
+    t = clock();
     if (bankers_alg(r_alloc,r_need,r_avail,p_sequence,p_seen,num_processes,num_resources)){
-        printf("GRANTED\n");
-        stop = rdtsc();
+        if (debug) printf("GRANTED\n");
     }
     else{
-        printf("DENIED\n");
-        stop = rdtsc();
+        if (debug) printf("DENIED\n");
     }
-    printf("BA cycles: %" PRIu64 "\n", (stop - start));
+    t = clock() - t;
+    //printf("BA cycles: %" PRIu64 "\n", (stop - start));
+    printf("%d %f\n", num_processes, ((double)t)/CLOCKS_PER_SEC);
 
     if (debug){
         printf("p_sequence: ");

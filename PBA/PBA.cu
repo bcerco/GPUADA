@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<malloc.h>
 #include<string.h>
+#include<time.h>
 
 /*
  * Brandon Cercone
@@ -9,20 +10,27 @@
  */
 #define THREADS_PER_BLOCK 1024
 #define NUM_OF_BLOCKS 16
-__global__ void r_check(int *avail, int *alloc, int *need, int *out, int p, int r){
-    __shared__ int s_avail[THREADS_PER_BLOCK];
-    int bound = r * p;
+__global__ void r_check(int *avail, int *alloc, int *need, int *out, int p, int *flag){
+    //__shared__ int s_avail[THREADS_PER_BLOCK];
+    //int bound = r * p;
     /* Index into the allocation vector using the thread id */
     int t_index = threadIdx.x;
     /* Index into the need & alloc matrix */
-    int index = threadIdx.x + blockIdx.x * blockDim.x;
-    s_avail[t_index] = avail[t_index];
-    __syncthreads();
-    do {
-        out[index] = (s_avail[t_index] >= need[index]) ? 1 : 0;
-        //out[index] = (avail[t_index] >= need[index]) ? 1 : 0;
-        index += (NUM_OF_BLOCKS * r); 
-    } while (index < bound);
+    int index = threadIdx.x + blockIdx.x * blockDim.x + (p * blockDim.x);
+    //s_avail[t_index] = avail[t_index];
+    //__syncthreads();
+    //out[index] = (avail[t_index] >= need[index]) ? 1 : 0;
+    if (avail[t_index] < need[index]) *flag = 0;
+    //do {
+    //    //out[index] = (s_avail[t_index] >= need[index]) ? 1 : 0;
+    //    out[index] = (avail[t_index] >= need[index]) ? 1 : 0;
+    //    index += (NUM_OF_BLOCKS * r); 
+    //} while (index < bound);
+}
+__global__ void add_r(int *avail, int *alloc, int p){
+    int t_index = threadIdx.x;
+    int index = threadIdx.x + blockIdx.x * blockDim.x + (p * blockDim.x);
+    avail[t_index] += alloc[index];
 }
 void store_vector(int *array, char *line){
 	char *tokens = strtok(line,",");
@@ -43,6 +51,7 @@ int main (int argc, char *argv[]) {
 	size_t len = 0;
 	ssize_t read;
 	char *tokens;
+    clock_t t;
     int index = 0;
 	if (argc < 2){
 		printf("ERROR: args=%d",argc);
@@ -85,7 +94,6 @@ int main (int argc, char *argv[]) {
 			tokens = strtok(NULL,",");
 		}
 	}
-    printf("INDEX %d\n", index);
 	/* Read in the reource allocation matrix from file */
 	/* Calculate values for the need matrix */
     index = 0;
@@ -103,6 +111,7 @@ int main (int argc, char *argv[]) {
 	if (line)
 		free(line);
     cudaEventRecord(start,0);
+    t = clock();
     /* Allocate memory on the GPU */
     cudaMalloc((void **)&gpu_r_avail, num_resources * sizeof(int));
     cudaMalloc((void **)&gpu_r_alloc, size);
@@ -113,8 +122,35 @@ int main (int argc, char *argv[]) {
     cudaMemcpy(gpu_r_alloc, r_alloc, size, cudaMemcpyHostToDevice);
     cudaMemcpy(gpu_r_need, r_need, size, cudaMemcpyHostToDevice);
     /* Launch kernel */
-    r_check<<<NUM_OF_BLOCKS,THREADS_PER_BLOCK>>>(gpu_r_avail, gpu_r_alloc, gpu_r_need, gpu_r_out, num_processes, num_resources);
-    printf("%s\n", cudaGetErrorString(cudaGetLastError()));
+    int flag,counter;
+    int *gpu_flag;
+    cudaMalloc((void **)&gpu_flag, sizeof(int));
+    counter = 0;
+    while(counter < num_processes){
+        for (p = 0; p < num_processes; p++){
+            if (p_seen[p]) continue;
+            flag = 1;
+            cudaMemcpy(gpu_flag,&flag,sizeof(int),cudaMemcpyHostToDevice);
+            r_check<<<1,THREADS_PER_BLOCK>>>(gpu_r_avail, gpu_r_alloc, gpu_r_need, gpu_r_out, p, gpu_flag);
+            cudaMemcpy(&flag,gpu_flag,sizeof(int),cudaMemcpyDeviceToHost);
+            if (flag){
+                add_r<<<1,THREADS_PER_BLOCK>>>(gpu_r_avail,gpu_r_alloc,p);
+                p_seen[p] = 1;
+                p_sequence[counter] = p;
+                counter++;
+                break;
+            }
+        }
+        if (!flag){
+            printf("DENIED\n");
+            break;
+        }
+    }
+    //for (int k = 0; k < num_processes; k++){
+    ////r_check<<<NUM_OF_BLOCKS,THREADS_PER_BLOCK>>>(gpu_r_avail, gpu_r_alloc, gpu_r_need, gpu_r_out, num_processes, num_resources);
+    //r_check<<<1,THREADS_PER_BLOCK>>>(gpu_r_avail, gpu_r_alloc, gpu_r_need, gpu_r_out, k, num_resources);
+    //}
+    //printf("%s\n", cudaGetErrorString(cudaGetLastError()));
     /* Copy result to host */
     cudaMemcpy(r_out, gpu_r_out,size, cudaMemcpyDeviceToHost);
     cudaEventRecord(stop,0);
@@ -122,15 +158,17 @@ int main (int argc, char *argv[]) {
     cudaEventElapsedTime(&eTime, start, stop);
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
-    printf("%s\n", cudaGetErrorString(cudaGetLastError()));
+    //printf("%s\n", cudaGetErrorString(cudaGetLastError()));
     /* Free GPU memory */
     cudaFree(gpu_r_avail);
     cudaFree(gpu_r_alloc);
     cudaFree(gpu_r_need);
     cudaFree(gpu_r_out);
+    cudaFree(gpu_flag);
+    t = clock() - t;
 
-    /*for (r = 0; r < num_resources; r++){
-        printf("%d ", r_avail[r]);
+    /*for (r = 0; r < num_processes; r++){
+        printf("%d ", p_sequence[r]);
     }
     printf("\n\n");
 	for (p = 0; p < num_processes; p++){
@@ -154,7 +192,8 @@ int main (int argc, char *argv[]) {
         printf("\n");
 	}*/
 
-    printf("GPU Time: %f seconds\n", eTime/1000.0);
+    printf("%d %f\n", num_processes, eTime/1000.0);
+    //printf("%d %f\n", num_processes, ((double)t)/CLOCKS_PER_SEC);
 
     free(r_alloc);
     free(r_max);

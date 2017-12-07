@@ -4,6 +4,7 @@
 #include<string.h>
 #include<stdint.h>
 #include<inttypes.h>
+#include<time.h>
 
 #ifndef SBA_H_
 #define SBA_H_
